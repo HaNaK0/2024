@@ -3,6 +3,8 @@ use std::{
     io::{BufRead, BufReader},
 };
 
+use anyhow::anyhow;
+
 const DATA_PATH: &str = "data.txt";
 
 #[derive(PartialEq, Eq)]
@@ -13,16 +15,18 @@ enum ChangeDirection {
 }
 
 impl ChangeDirection {
-    fn calculate<T>(first: &T, second: &T) -> Self
+    fn calculate<T>(first: &T, second: &T) -> anyhow::Result<Self>
     where
         T: PartialEq + PartialOrd,
     {
         if first == second {
-            ChangeDirection::Neither
+            Ok(ChangeDirection::Neither)
         } else if first < second {
-            ChangeDirection::Rising
+            Ok(ChangeDirection::Rising)
+        } else if first > second {
+            Ok(ChangeDirection::Falling)
         } else {
-            ChangeDirection::Falling
+            Err(anyhow!("Should not get here"))
         }
     }
 }
@@ -34,14 +38,14 @@ fn main() -> anyhow::Result<()> {
 
             let first: i32 = split.nth(0).unwrap();
             let mut previous = split.nth(0).unwrap();
-            let expected_change = ChangeDirection::calculate(&first, &previous);
+            let expected_change = ChangeDirection::calculate(&first, &previous).unwrap();
 
             if expected_change == ChangeDirection::Neither {
                 return false;
             }
 
             for num in split {
-                let current_change = ChangeDirection::calculate(&previous, &num);
+                let current_change = ChangeDirection::calculate(&previous, &num).unwrap();
 
                 if current_change != expected_change || (num - previous).abs() > 3 {
                     return false;
@@ -50,10 +54,13 @@ fn main() -> anyhow::Result<()> {
                 previous = num
             }
 
-            false
+            println!("{l}");
+
+            true
         })
         .count();
 
+    println!("{result}");
     Ok(())
 }
 
