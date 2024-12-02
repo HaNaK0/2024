@@ -5,23 +5,54 @@ use std::{
 
 const DATA_PATH: &str = "data.txt";
 
-fn main() -> anyhow::Result<()> {
-    let mut list_1 = vec![];
-    let mut list_2 = vec![];
+#[derive(PartialEq, Eq)]
+enum ChangeDirection {
+    Rising,
+    Falling,
+    Neither,
+}
 
-    for line in read_data()? {
-        let mut split = line.split("   ").map(|s| s.parse::<i32>().unwrap());
-
-        list_1.push(split.next().unwrap());
-        list_2.push(split.next().unwrap());
+impl ChangeDirection {
+    fn calculate<T>(first: &T, second: &T) -> Self
+    where
+        T: PartialEq + PartialOrd,
+    {
+        if first == second {
+            ChangeDirection::Neither
+        } else if first < second {
+            ChangeDirection::Rising
+        } else {
+            ChangeDirection::Falling
+        }
     }
+}
 
-    let result: i32 = list_1
-        .iter()
-        .map(|num| list_2.iter().filter(|&num_2| num_2 == num).count() as i32 * num)
-        .sum();
+fn main() -> anyhow::Result<()> {
+    let result = read_data()?
+        .filter(|l| {
+            let mut split = l.split(" ").map(|c| c.parse::<i32>().unwrap());
 
-    println!("{result}");
+            let first: i32 = split.nth(0).unwrap();
+            let mut previous = split.nth(0).unwrap();
+            let expected_change = ChangeDirection::calculate(&first, &previous);
+
+            if expected_change == ChangeDirection::Neither {
+                return false;
+            }
+
+            for num in split {
+                let current_change = ChangeDirection::calculate(&previous, &num);
+
+                if current_change != expected_change || (num - previous).abs() > 3 {
+                    return false;
+                }
+
+                previous = num
+            }
+
+            false
+        })
+        .count();
 
     Ok(())
 }
