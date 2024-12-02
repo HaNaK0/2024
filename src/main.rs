@@ -16,13 +16,9 @@ fn main() -> anyhow::Result<()> {
         list_2.push(split.next().unwrap());
     }
 
-    list_1.sort();
-    list_2.sort();
-
     let result: i32 = list_1
         .iter()
-        .zip(list_2.iter())
-        .map(|(num_1, num_2)| (num_2 - num_1).abs())
+        .map(|num| list_2.iter().filter(|&num_2| num_2 == num).count() as i32 * num)
         .sum();
 
     println!("{result}");
