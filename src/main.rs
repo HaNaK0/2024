@@ -34,34 +34,56 @@ impl ChangeDirection {
 fn main() -> anyhow::Result<()> {
     let result = read_data()?
         .filter(|l| {
-            let mut split = l.split(" ").map(|c| c.parse::<i32>().unwrap());
+            let split: Vec<i32> = l.split(" ").map(|c| c.parse::<i32>().unwrap()).collect();
 
-            let first: i32 = split.nth(0).unwrap();
-            let mut previous = split.nth(0).unwrap();
-            let expected_change = ChangeDirection::calculate(&first, &previous).unwrap();
-
-            if expected_change == ChangeDirection::Neither || (first - previous).abs() > 3 {
-                return false;
+            if !check_line(split.clone()) {
+                (0..split.len())
+                    .map(|i| {
+                        check_line(split.iter().enumerate().filter_map(|(index, n)| {
+                            if i == index {
+                                None
+                            } else {
+                                Some(*n)
+                            }
+                        }))
+                    })
+                    .find(|b| *b)
+                    .is_some()
+            } else {
+                true
             }
-
-            for num in split {
-                let current_change = ChangeDirection::calculate(&previous, &num).unwrap();
-
-                if current_change != expected_change || (num - previous).abs() > 3 {
-                    return false;
-                }
-
-                previous = num
-            }
-
-            println!("{l}");
-
-            true
         })
         .count();
 
     println!("{result}");
     Ok(())
+}
+
+fn check_line<I>(line: I) -> bool
+where
+    I: IntoIterator<Item = i32>,
+{
+    let mut line = line.into_iter();
+
+    let first: i32 = line.nth(0).unwrap();
+    let mut previous = line.nth(0).unwrap();
+    let expected_change = ChangeDirection::calculate(&first, &previous).unwrap();
+
+    if expected_change == ChangeDirection::Neither || (first - previous).abs() > 3 {
+        return false;
+    }
+
+    for num in line {
+        let current_change = ChangeDirection::calculate(&previous, &num).unwrap();
+
+        if current_change != expected_change || (num - previous).abs() > 3 {
+            return false;
+        }
+
+        previous = num
+    }
+
+    return true;
 }
 
 fn read_data() -> anyhow::Result<impl Iterator<Item = String>> {
