@@ -40,7 +40,7 @@ fn main() -> anyhow::Result<()> {
             let mut previous = split.nth(0).unwrap();
             let expected_change = ChangeDirection::calculate(&first, &previous).unwrap();
 
-            if expected_change == ChangeDirection::Neither {
+            if expected_change == ChangeDirection::Neither || (first - previous).abs() > 3 {
                 return false;
             }
 
