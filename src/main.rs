@@ -9,12 +9,12 @@ const DATA_PATH: &str = "data.txt";
 
 fn main() -> anyhow::Result<()> {
     let lines = read_data()?;
+    let mut activated = true;
 
     let result: i32 = lines
         .map(|line| {
             let mut chars = line.chars().peekable();
             let mut sum = 0;
-            let mut activated = true;
 
             while chars.peek().is_some() {
                 if activated {
