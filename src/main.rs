@@ -1,89 +1,97 @@
 use std::{
+    char,
     fs::File,
     io::{BufRead, BufReader},
+    iter::Peekable,
 };
-
-use anyhow::anyhow;
 
 const DATA_PATH: &str = "data.txt";
 
-#[derive(PartialEq, Eq)]
-enum ChangeDirection {
-    Rising,
-    Falling,
-    Neither,
-}
-
-impl ChangeDirection {
-    fn calculate<T>(first: &T, second: &T) -> anyhow::Result<Self>
-    where
-        T: PartialEq + PartialOrd,
-    {
-        if first == second {
-            Ok(ChangeDirection::Neither)
-        } else if first < second {
-            Ok(ChangeDirection::Rising)
-        } else if first > second {
-            Ok(ChangeDirection::Falling)
-        } else {
-            Err(anyhow!("Should not get here"))
-        }
-    }
-}
-
 fn main() -> anyhow::Result<()> {
-    let result = read_data()?
-        .filter(|l| {
-            let split: Vec<i32> = l.split(" ").map(|c| c.parse::<i32>().unwrap()).collect();
+    let lines = read_data()?;
 
-            if !check_line(split.clone()) {
-                (0..split.len())
-                    .map(|i| {
-                        check_line(split.iter().enumerate().filter_map(|(index, n)| {
-                            if i == index {
-                                None
-                            } else {
-                                Some(*n)
-                            }
-                        }))
-                    })
-                    .find(|b| *b)
-                    .is_some()
-            } else {
-                true
+    let result: i32 = lines
+        .map(|line| {
+            let mut chars = line.chars().peekable();
+
+            let mut sum = 0;
+
+            while chars.peek().is_some() {
+                if let Some((num_1, num_2)) = read_mul(&mut chars) {
+                    sum += num_1 * num_2;
+                } else {
+                    chars.next();
+                }
             }
-        })
-        .count();
 
-    println!("{result}");
+            sum
+        })
+        .sum();
+
+    print!("{result}");
+
     Ok(())
 }
 
-fn check_line<I>(line: I) -> bool
+fn read_mul<T>(chars: &mut Peekable<T>) -> Option<(i32, i32)>
 where
-    I: IntoIterator<Item = i32>,
+    T: Iterator<Item = char>,
 {
-    let mut line = line.into_iter();
-
-    let first: i32 = line.nth(0).unwrap();
-    let mut previous = line.nth(0).unwrap();
-    let expected_change = ChangeDirection::calculate(&first, &previous).unwrap();
-
-    if expected_change == ChangeDirection::Neither || (first - previous).abs() > 3 {
-        return false;
+    if !parse_string(chars, "mul(") {
+        return None;
     }
 
-    for num in line {
-        let current_change = ChangeDirection::calculate(&previous, &num).unwrap();
+    let first_num = read_num(chars);
 
-        if current_change != expected_change || (num - previous).abs() > 3 {
+    if first_num.is_none() {
+        return None;
+    }
+
+    if chars.next_if_eq(&',').is_none() {
+        return None;
+    }
+
+    let second_num = read_num(chars);
+
+    if second_num.is_none() {
+        return None;
+    }
+
+    if chars.next_if_eq(&')').is_none() {
+        return None;
+    }
+
+    Some((first_num.unwrap(), second_num.unwrap()))
+}
+
+fn read_num<T>(chars: &mut Peekable<T>) -> Option<i32>
+where
+    T: Iterator<Item = char>,
+{
+    let mut out = String::new();
+    while let Some(c) = chars.next_if(|c| c.is_numeric()) {
+        out.push(c.clone());
+    }
+
+    if out.is_empty() {
+        None
+    } else {
+        Some(out.parse().unwrap())
+    }
+}
+
+fn parse_string<I, S>(chars: &mut Peekable<I>, string: &S) -> bool
+where
+    I: Iterator<Item = char>,
+    S: AsRef<str> + ?Sized,
+{
+    for c in string.as_ref().chars() {
+        if chars.next_if_eq(&c).is_none() {
             return false;
         }
-
-        previous = num
     }
 
-    return true;
+    true
 }
 
 fn read_data() -> anyhow::Result<impl Iterator<Item = String>> {
