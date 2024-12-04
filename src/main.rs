@@ -13,14 +13,24 @@ fn main() -> anyhow::Result<()> {
     let result: i32 = lines
         .map(|line| {
             let mut chars = line.chars().peekable();
-
             let mut sum = 0;
+            let mut activated = true;
 
             while chars.peek().is_some() {
-                if let Some((num_1, num_2)) = read_mul(&mut chars) {
-                    sum += num_1 * num_2;
+                if activated {
+                    if let Some((num_1, num_2)) = read_mul(&mut chars) {
+                        sum += num_1 * num_2;
+                    } else if parse_string(&mut chars, "don't()") {
+                        activated = false
+                    } else {
+                        chars.next();
+                    }
                 } else {
-                    chars.next();
+                    if parse_string(&mut chars, "do()") {
+                        activated = true
+                    } else {
+                        chars.next();
+                    }
                 }
             }
 
