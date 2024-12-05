@@ -2,106 +2,150 @@ use std::{
     char,
     fs::File,
     io::{BufRead, BufReader},
-    iter::Peekable,
+    ops::{Add, Mul, Sub},
 };
 
 const DATA_PATH: &str = "data.txt";
 
-fn main() -> anyhow::Result<()> {
-    let lines = read_data()?;
-    let mut activated = true;
-
-    let result: i32 = lines
-        .map(|line| {
-            let mut chars = line.chars().peekable();
-            let mut sum = 0;
-
-            while chars.peek().is_some() {
-                if activated {
-                    if let Some((num_1, num_2)) = read_mul(&mut chars) {
-                        sum += num_1 * num_2;
-                    } else if parse_string(&mut chars, "don't()") {
-                        activated = false
-                    } else {
-                        chars.next();
-                    }
-                } else {
-                    if parse_string(&mut chars, "do()") {
-                        activated = true
-                    } else {
-                        chars.next();
-                    }
-                }
-            }
-
-            sum
-        })
-        .sum();
-
-    print!("{result}");
-
-    Ok(())
+#[derive(Clone, Copy)]
+struct Vector {
+    x: i64,
+    y: i64,
 }
 
-fn read_mul<T>(chars: &mut Peekable<T>) -> Option<(i32, i32)>
-where
-    T: Iterator<Item = char>,
-{
-    if !parse_string(chars, "mul(") {
-        return None;
-    }
-
-    let first_num = read_num(chars);
-
-    if first_num.is_none() {
-        return None;
-    }
-
-    if chars.next_if_eq(&',').is_none() {
-        return None;
-    }
-
-    let second_num = read_num(chars);
-
-    if second_num.is_none() {
-        return None;
-    }
-
-    if chars.next_if_eq(&')').is_none() {
-        return None;
-    }
-
-    Some((first_num.unwrap(), second_num.unwrap()))
-}
-
-fn read_num<T>(chars: &mut Peekable<T>) -> Option<i32>
-where
-    T: Iterator<Item = char>,
-{
-    let mut out = String::new();
-    while let Some(c) = chars.next_if(|c| c.is_numeric()) {
-        out.push(c.clone());
-    }
-
-    if out.is_empty() {
-        None
-    } else {
-        Some(out.parse().unwrap())
-    }
-}
-
-fn parse_string<I, S>(chars: &mut Peekable<I>, string: &S) -> bool
-where
-    I: Iterator<Item = char>,
-    S: AsRef<str> + ?Sized,
-{
-    for c in string.as_ref().chars() {
-        if chars.next_if_eq(&c).is_none() {
-            return false;
+impl Vector {
+    fn new_from_index(index: usize, columns: usize) -> Self {
+        Self {
+            x: (index % columns) as i64,
+            y: (index / columns) as i64,
         }
     }
 
-    true
+    fn get_index(&self, columns: usize, rows: usize) -> Option<usize> {
+        if self.x >= 0 && self.y >= 0 && self.x < columns as i64 && self.y < rows as i64 {
+            Some((self.x as usize) + (self.y as usize) * columns)
+        } else {
+            None
+        }
+    }
+
+    fn get_direction_iterator() -> impl Iterator<Item = Vector> {
+        [
+            (-1, -1),
+            (0, -1),
+            (1, -1),
+            (1, 0),
+            (1, 1),
+            (0, 1),
+            (-1, 1),
+            (-1, 0),
+        ]
+        .iter()
+        .map(|v| Self::from(*v))
+    }
+}
+
+impl<T> From<(T, T)> for Vector
+where
+    T: Into<i64>,
+{
+    fn from(value: (T, T)) -> Self {
+        Self {
+            x: value.0.into(),
+            y: value.1.into(),
+        }
+    }
+}
+
+impl Add for Vector {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+
+impl Sub for Vector {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
+    }
+}
+
+impl<T> Mul<T> for Vector
+where
+    T: Mul<i64, Output = i64> + Copy,
+{
+    type Output = Vector;
+
+    fn mul(self, rhs: T) -> Self::Output {
+        Self {
+            x: rhs * self.x,
+            y: rhs * self.y,
+        }
+    }
+}
+
+fn main() -> anyhow::Result<()> {
+    let chars = read_data()?
+        .map(|line| line.chars().collect::<Vec<char>>())
+        .collect::<Vec<Vec<char>>>();
+
+    let flat_chars: Vec<&char> = chars.iter().flatten().collect();
+
+    let columns = chars[0].len();
+    let rows = chars.len();
+
+    let result: usize = chars
+        .iter()
+        .flatten()
+        .enumerate()
+        .filter_map(|(i, &c)| if c == 'X' { Some(i) } else { None })
+        .map(|i| {
+            let current_position = Vector::new_from_index(i, columns);
+            Vector::get_direction_iterator()
+                .filter_map(|v| get_word(4, &v, &current_position, columns, rows, &flat_chars))
+                .filter(|s| s == "XMAS")
+                .inspect(|s| println!("{s}"))
+                .count()
+        })
+        .sum();
+
+    println!("{result}");
+    Ok(())
+}
+
+fn get_word(
+    len: usize,
+    vector: &Vector,
+    origin: &Vector,
+    columns: usize,
+    rows: usize,
+    chars: &Vec<&char>,
+) -> Option<String> {
+    let string: String = (0..len)
+        .map_while(|i| {
+            let pos = *origin + *vector * (i as i64);
+            if let Some(index) = pos.get_index(columns, rows) {
+                Some(chars[index])
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    if string.len() == len {
+        Some(string)
+    } else {
+        None
+    }
 }
 
 fn read_data() -> anyhow::Result<impl Iterator<Item = String>> {
