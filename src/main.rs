@@ -43,6 +43,12 @@ impl Vector {
         .iter()
         .map(|v| Self::from(*v))
     }
+
+    fn get_x_iterator() -> impl Iterator<Item = Vector> {
+        [(-1, -1), (1, 1), (-1, 1), (1, -1)]
+            .iter()
+            .map(|v| Self::from(*v))
+    }
 }
 
 impl<T> From<(T, T)> for Vector
@@ -107,16 +113,19 @@ fn main() -> anyhow::Result<()> {
         .iter()
         .flatten()
         .enumerate()
-        .filter_map(|(i, &c)| if c == 'X' { Some(i) } else { None })
-        .map(|i| {
-            let current_position = Vector::new_from_index(i, columns);
-            Vector::get_direction_iterator()
-                .filter_map(|v| get_word(4, &v, &current_position, columns, rows, &flat_chars))
-                .filter(|s| s == "XMAS")
+        .filter_map(|(i, &c)| if c == 'A' { Some(i) } else { None })
+        .filter(|i| {
+            let current_position = Vector::new_from_index(*i, columns);
+            Vector::get_x_iterator()
+                .filter_map(|v| {
+                    get_word(3, &v, &(current_position - v), columns, rows, &flat_chars)
+                })
                 //.inspect(|s| println!("{s}"))
+                .filter(|s| s == "MAS")
                 .count()
+                >= 2
         })
-        .sum();
+        .count();
 
     println!("{result}");
     Ok(())
