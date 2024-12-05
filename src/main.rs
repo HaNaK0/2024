@@ -113,7 +113,7 @@ fn main() -> anyhow::Result<()> {
             Vector::get_direction_iterator()
                 .filter_map(|v| get_word(4, &v, &current_position, columns, rows, &flat_chars))
                 .filter(|s| s == "XMAS")
-                .inspect(|s| println!("{s}"))
+                //.inspect(|s| println!("{s}"))
                 .count()
         })
         .sum();
