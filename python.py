@@ -21,20 +21,33 @@ with open('data.txt', 'r') as file:
 				updates.append(update)
 
 result = 0
-			
+to_be_sorted: list[list[int]] = []
+print(to_be_sorted)
+		
 for update in updates:
-	is_ok = True
 	for (page_1, page_2) in rules:
 		if page_1 not in update or page_2 not in update:
 			continue
 		
 		if update.index(page_1) > update.index(page_2):
-			is_ok = False
+			to_be_sorted.append(update)
 			break
-	
-	if is_ok:
-		middle_num = update[int(len(update)/2)]
-		result += middle_num
+			
+			
+for update in to_be_sorted:
+	swapped = True
+	while swapped:
+		swapped = False
+		for (page_1,page_2) in rules:
+			if page_1 not in update or page_2 not in update:
+				continue
+			
+			if update.index(page_1) > update.index(page_2):
+				update.remove(page_1)
+				update.insert(update.index(page_2),page_1)
+				swapped = True
+
+for update in to_be_sorted:
+	result += update[int(len(update)/2)]
 
 print(result)
-			
