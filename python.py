@@ -3,7 +3,7 @@ class Guard:
 	x: int
 	y: int
 	dir: int
-	steps: set[tuple]
+	steps: dict[tuple[int,int], int]
 	def __init__(self, x, y, dir:str):
 		self.x = x
 		self.y = y
@@ -19,7 +19,7 @@ class Guard:
 			case _:
 				raise Exception(f"invalid symbol for direction:{dir}")
 		
-		self.steps = set([self.get_pos()])
+		self.steps = dict()
 				
 	def get_next(self) -> tuple[int, int]:
 		match self.dir:
@@ -38,8 +38,8 @@ class Guard:
 		self.dir = (self.dir + 1) % 4
 		
 	def step(self):
+		self.steps.setdefault(self.get_pos(), []).append(self.dir)
 		(self.x, self.y) = self.get_next()
-		self.steps.add(self.get_pos())
 		
 	def is_on_map(self, map_width, map_height) -> bool:
 		return 0 <= self.x < map_width and 0 <= self.y < map_height
@@ -50,8 +50,12 @@ class Guard:
 	def get_steps(self) -> int:
 		return len(self.steps)
 		
+	def get_if_looping(self)->bool:
+		return self.get_pos() in self.steps and self.dir in self.steps[self.get_pos()]
+		
 
 obstacles: set[tuple[int,int]] = set()
+origin: tuple[int,int,str]
 guard: Guard
 
 width: int
@@ -70,6 +74,7 @@ with open('data.txt', 'r') as file:
 							obstacles.add((x,y))
 						case ">" | "v" | "<" | "^":
 							guard = Guard(x,y,char)
+							origin = (x,y,char)
 						case ".":
 							pass
 						case _:
@@ -83,4 +88,27 @@ while guard.is_on_map(width, height):
 			else:
 				guard.step()
 
-print(guard.get_steps()-1)
+print(guard.get_steps())
+
+original_path = guard.steps
+result = 0
+
+del original_path[(origin[0], origin[1])]
+
+for pos in original_path:
+	obstacles.add(pos)
+	guard = Guard(origin[0], origin[1], origin[2])
+	
+	while guard.is_on_map(width, height):
+		if guard.get_next() in obstacles:
+			guard.turn()
+		else:
+			guard.step()
+		
+		if guard.get_if_looping():
+			result +=1
+			break
+	
+	obstacles.remove(pos)
+
+print(result)
