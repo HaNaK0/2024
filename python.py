@@ -1,30 +1,30 @@
-	
-def test(target, values) -> bool:
-	if values[0] > target:
-		return False
-	if len(values) == 1:
-		return target == values[0]
-	if (test(target, [values[0] + values[1]] + values[2:])):
-		return True
-	if (test(target, [values[0] * values[1]] + values[2:])):
-		return True
-	val_str = str(values[0]) + str(values[1])
-	if test(target, [int(val_str)] + values[2:]):
-		return True
-	return False
+from vector import Vector
 
-final_result = 0
+def is_inside(vec: Vector, width, height) -> bool:
+	return 0 <= vec.x < width and 0 <= vec.y < height
+
+towers: dict[str:list[Vector]] = dict()
+
+height= 0
+width= 0
 
 with open('data.txt', 'r') as file:
-			for line in file:
-				(cal, vals) = line.strip().split(":")
-				cal = int(cal)
+	for y, line in enumerate(file):
+		height = max(height,y + 1)
+		width = len(line)
+		for x,char in enumerate(line):
+			if char != ".":
+				towers.setdefault(char, []).append(Vector(x, y))
 				
-				vals = [int(val) for val in vals.strip().split(" ")]
-				if test(cal, vals):
-						final_result += cal
-						
-print(final_result)
+anti_nodes: set[Vector] = set()
 
-with open("out.txt","w") as file:
-	file.write(str(final_result))
+for tower_list in towers.values():
+	for i, tower_1 in enumerate(tower_list[:-1]):
+		for tower_2 in tower_list[i+1:]:
+			diff = tower_1 - tower_2
+			if is_inside(tower_1 + diff, width, height):
+				anti_nodes.add(tower_1 + diff)
+			if is_inside(tower_2 + -diff, width, height):
+				anti_nodes.add(tower_2 + -diff)
+
+print(len(anti_nodes))
