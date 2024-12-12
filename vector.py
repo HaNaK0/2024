@@ -1,4 +1,5 @@
 import unittest
+from fractions import Fraction
 
 class Vector:
 	x: int
@@ -53,7 +54,16 @@ class Vector:
 			
 	def __neg__(self):
 			return self *-1
+		
+	def nomalized(self):
+			if self.y == 0:
+				return Vector(0 if self.x == 0 else 1, 0)
 			
+			frac= Fraction(self.x, self.y)
+			result = Vector(frac.numerator, frac.denominator)
+			return result if self.y > 0 else - result
+			
+					
 			
 class VectorTest(unittest.TestCase):
 				def test_eq(self):
@@ -99,6 +109,19 @@ class VectorTest(unittest.TestCase):
 						self.assertEqual(v * 2, (4, 4))
 						with self.assertRaises(TypeError):
 							_ = v * (0,0)
+				
+				def test_normalize(self):
+					v = Vector(10,30)
+					self.assertEqual(v.nomalized(), (1,3))
+					
+					v2 = Vector(5,0)
+					self.assertEqual(v2.nomalized(), (1,0))
+					
+					v3 = Vector(0,5)
+					self.assertEqual(v3.nomalized(), (0,1))
+					
+					v4 = Vector(6,-4)
+					self.assertEqual(v4.nomalized(), (3,-2))
 													
 if __name__ == "__main__":
 	unittest.main()
