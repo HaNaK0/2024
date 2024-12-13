@@ -1,61 +1,55 @@
-from vector import Vector
-import math
+from dataclasses import dataclass
 
-class Line:
-	origin: Vector
-	k: float
-	
-	def __init__(self, v1: Vector, v2: Vector):
-		self.origin = v1
-		vec = v2 - v1
-		self.k = vec.y / vec.x
-		
-	def f(self, x):
-		return self.origin.y + self.k * (x - self.origin.x)
-		
-	def is_on_line(self ,p: Vector):
-		return math.isclose(self.f(p.x), p.y)		
+@dataclass
+class File:
+	location: int
+	size: int
 
-def is_inside(vec: Vector, width, height) -> bool:
-	return 0 <= vec.x < width and 0 <= vec.y < height
-
-towers: dict[str:list[Vector]] = dict()
-
-height= 0
-width= 0
+line: str = ""
 
 with open('data.txt', 'r') as file:
-	for y, line in enumerate(file):
-		height = max(height,y + 1)
-		width = len(line)
-		for x,char in enumerate(line):
-			if char != ".":
-				towers.setdefault(char, []).append(Vector(x, y))
-				
-anti_nodes: set[Vector] = set()
+	line = file.readline()
 
-for tower_list in towers.values():
-	for i, tower_1 in enumerate(tower_list[:-1]):
-		for tower_2 in tower_list[i+1:]:
-			diff: Vector = (tower_1 - tower_2).nomalized()
-			next_t = tower_1
-			
-			while is_inside(next_t, width, height):
-				anti_nodes.add(next_t)
-				next_t = next_t + diff
-				
-			next_t = tower_1 - diff
-			while is_inside(next_t, width, height):
-				anti_nodes.add(next_t)
-				next_t = next_t - diff
-			
+disk: list[int] = []
+files: list[File] = []
+spaces: list[File] = []
 
-for x in range(0,width):
-	for y in range(0,height):
-		if (x,y) in anti_nodes:
-			print("#", end="")
-		else:
-			print(".", end="")
-	print()
+for i, c in enumerate(line):
+	entry = int(c)
+	if i % 2 == 0 and entry != 0:
+		files.append(File(len(disk), entry))
+	elif entry != 0:
+		spaces.append(File(len(disk), entry))
+	
+	for j in range(0, entry):
+		disk.append(int(i / 2) if i % 2 == 0 else -1)
+		
+for file in reversed(files):
+	for space in spaces:
+		if space.location >= file.location:
+			break
+		
+		if space.size >= file.size:
+			disk[space.location:space.location+ file.size] = disk[file.location:file.location+file.size]
+			for i in range(file.location, file.location+file.size):
+				pass
+				disk[i]= -1
+			if space.size == file.size:
+				spaces.remove(space)
+			else:
+				space.size = space.size - file.size
+				space.location += file.size
+			break
+		
+		
+result = 0
 
-print(len(anti_nodes))
+for  index, block in enumerate(disk):
+	if block < 0:
+		continue
+	
+	result += index * block
+
+print(result)
+with open("out.txt", "w") as file:
+	file.write(str(result))
