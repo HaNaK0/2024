@@ -110,3 +110,4 @@ for score in scores:
 	total+= score
 	
 print(total)
+print(len(trails))
