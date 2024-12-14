@@ -1,5 +1,6 @@
 import unittest
 from fractions import Fraction
+from typing import Self
 
 class Vector:
 	x: int
@@ -8,11 +9,15 @@ class Vector:
 	def __init__(self, x ,y):
 		self.x = x
 		self.y = y
+		
+	@classmethod
+	def from_tuple(cls, t: tuple[int,int]) -> Self:
+		return Vector(t[0], t[1])
 	
 	def as_tuple(self) -> tuple[int, int]:
 		return (self.x, self.y)
 	
-	def __add__ (self, other):
+	def __add__ (self, other) -> Self:
 		match other:
 			case v if isinstance(v, Vector):
 				return Vector(self.x + v.x, self.y + v.y)
@@ -21,7 +26,7 @@ class Vector:
 			case _:
 				raise TypeError(f"cant add a {type(other)} to a vector")
 				
-	def __sub__ (self, other):
+	def __sub__ (self, other) -> Self:
 		match other:
 			case v if isinstance(v, Vector):
 				return Vector(self.x - v.x, self.y - v.y)
@@ -31,7 +36,7 @@ class Vector:
 				raise TypeError(f"cant add a {type(other)} to a vector")
 	
 	
-	def __eq__(self, other):
+	def __eq__(self, other) -> bool:
 		match other:
 			case v if isinstance(v, Vector):
 				return v.x == self.x and v.y == self.y
@@ -40,22 +45,22 @@ class Vector:
 			case _:
 				raise TypeError(f"can't compare a vector with an object of type {type(other)}")
 	
-	def __mul__(self, other):
+	def __mul__(self, other) -> Self:
 		if not isinstance(other, int):
 			raise TypeError(f"Can't multiply a Vector with a {type(other)}")
 		
 		return Vector(self.x * other, self.y * other)
 		
-	def __str__(self):
+	def __str__(self) -> str:
 			return f"Vector({self.x}, {self.y})"
 			
 	def __hash__(self):
 			return hash((self.x, self.y))
 			
-	def __neg__(self):
+	def __neg__(self) -> Self:
 			return self *-1
 		
-	def nomalized(self):
+	def nomalized(self) -> Self:
 			if self.y == 0:
 				return Vector(0 if self.x == 0 else 1, 0)
 			
@@ -63,7 +68,11 @@ class Vector:
 			result = Vector(frac.numerator, frac.denominator)
 			return result if self.y > 0 else - result
 			
-					
+	def is_within(self, size: tuple[int, int], origin = (0,0)):
+	 	origin = Vector.from_tuple(origin)
+	 	max = origin + size
+	 	return origin.x <= self.x < max.x and origin.y <= self.y < max.y
+	 	
 			
 class VectorTest(unittest.TestCase):
 				def test_eq(self):
@@ -109,7 +118,11 @@ class VectorTest(unittest.TestCase):
 						self.assertEqual(v * 2, (4, 4))
 						with self.assertRaises(TypeError):
 							_ = v * (0,0)
-				
+				def test_from_tuple(self):
+					v = Vector.from_tuple((0,5))
+					
+					self.assertEqual(v, (0,5))
+					
 				def test_normalize(self):
 					v = Vector(10,30)
 					self.assertEqual(v.nomalized(), (1,3))
@@ -122,7 +135,7 @@ class VectorTest(unittest.TestCase):
 					
 					v4 = Vector(6,-4)
 					self.assertEqual(v4.nomalized(), (3,-2))
-													
+
 if __name__ == "__main__":
 	unittest.main()
 	
